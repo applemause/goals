@@ -209,7 +209,7 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
       return json({ id }, { status: 201 });
     }
 
-    if (parts[1] === 'goals' && parts[2] && method === 'PUT') {
+    if (parts[1] === 'goals' && parts[2] && parts.length === 3 && method === 'PUT') {
       const payload = await body<GoalInput>(request);
       const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?')
         .bind(parts[2], payload.workspaceId)
@@ -227,10 +227,33 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
       return json({ ok: true });
     }
 
-    if (parts[1] === 'goals' && parts[2] && method === 'DELETE') {
+    if (parts[1] === 'goals' && parts[2] && parts.length === 3 && method === 'DELETE') {
       const workspaceId = searchParams.get('workspaceId') || '';
       const result = await env.DB.prepare('DELETE FROM goals WHERE id = ? AND workspace_id = ?').bind(parts[2], workspaceId).run();
       return json({ ok: result.meta.changes > 0 });
+    }
+
+    if (parts[1] === 'goals' && parts[2] && parts[3] === 'milestones' && parts[4] === 'order' && method === 'PUT') {
+      const payload = await body<{ workspaceId: string; milestoneIds: string[] }>(request);
+      const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?')
+        .bind(parts[2], payload.workspaceId)
+        .first();
+      if (!goal) return json({ error: 'Цель не найдена.' }, { status: 404 });
+
+      const existing = await env.DB.prepare('SELECT id FROM milestones WHERE goal_id = ?')
+        .bind(parts[2])
+        .all<{ id: string }>();
+      const requested = Array.isArray(payload.milestoneIds) ? payload.milestoneIds.map((id) => clean(id, 80)) : [];
+      const existingIds = new Set(existing.results.map((item) => item.id));
+      if (requested.length !== existingIds.size || new Set(requested).size !== existingIds.size || requested.some((id) => !existingIds.has(id))) {
+        throw new Error('Список этапов изменился. Обновите страницу и попробуйте ещё раз.');
+      }
+
+      await env.DB.batch(requested.map((id, index) =>
+        env.DB.prepare("UPDATE milestones SET sort_order = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ? AND goal_id = ?")
+          .bind(index, id, parts[2]),
+      ));
+      return json({ ok: true });
     }
 
     if (parts[1] === 'goals' && parts[2] && parts[3] === 'milestones' && method === 'POST') {
