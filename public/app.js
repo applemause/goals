@@ -82,16 +82,21 @@ function renderHome() {
 
 function milestoneEditorMarkup(milestone) {
   const { current, target } = milestoneValues(milestone);
-  return `<li class="milestone-card"><form class="milestone-form" data-edit-milestone="${milestone.id}"><label class="milestone-title-field">Название этапа<input name="label" maxlength="60" value="${escapeHtml(milestone.label)}" required /></label><div class="milestone-fields"><label>Сделано<input name="progressCurrent" type="number" min="0" max="1000000" step="any" value="${current}" required /></label><label>Из<input name="progressTarget" type="number" min="0.01" max="1000000" step="any" value="${target}" required /></label><label>Единица<input name="unit" maxlength="24" value="${escapeHtml(milestone.unit || '')}" placeholder="дней, %, км" /></label><label>Статус<select name="state"><option value="future" ${milestone.state === 'future' ? 'selected' : ''}>Впереди</option><option value="current" ${milestone.state === 'current' ? 'selected' : ''}>Сейчас</option><option value="done" ${milestone.state === 'done' ? 'selected' : ''}>Сделано</option></select></label></div><div class="milestone-actions"><button class="button" type="submit">Сохранить</button><button class="text-button delete-milestone" type="button" data-delete-milestone="${milestone.id}">Удалить</button></div></form></li>`;
+  return `<li class="milestone-card" data-milestone-id="${milestone.id}"><form class="milestone-form" data-edit-milestone="${milestone.id}"><label class="milestone-title-field"><span class="visually-hidden">Название этапа</span><input name="label" maxlength="60" value="${escapeHtml(milestone.label)}" aria-label="Название этапа" required /></label><div class="milestone-tools"><button class="icon-button drag-handle" type="button" aria-label="Перетащить этап. Стрелки вверх и вниз меняют порядок" title="Изменить порядок"><span aria-hidden="true">⠿</span></button><button class="icon-button delete-milestone" type="button" data-delete-milestone="${milestone.id}" aria-label="Удалить этап" title="Удалить этап"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5" /></svg></button></div><div class="milestone-fields"><label>Сделано<input name="progressCurrent" type="number" min="0" max="1000000" step="any" value="${current}" required /></label><label>Из<input name="progressTarget" type="number" min="0.01" max="1000000" step="any" value="${target}" required /></label><label>Единица<input name="unit" maxlength="24" value="${escapeHtml(milestone.unit || '')}" placeholder="дней, %, км" /></label><label>Статус<select name="state"><option value="future" ${milestone.state === 'future' ? 'selected' : ''}>Впереди</option><option value="current" ${milestone.state === 'current' ? 'selected' : ''}>Сейчас</option><option value="done" ${milestone.state === 'done' ? 'selected' : ''}>Сделано</option></select></label></div></form></li>`;
 }
 
 function renderDetail() {
   const goal = state.goals.find((item) => item.id === state.selectedId);
   if (!goal) return renderHome();
-  app.innerHTML = `<div class="app-shell"><section class="panel"><button class="back" data-back>‹ Цели</button><header class="detail-head"><h1 class="goal-title">${escapeHtml(goal.title)}</h1><div class="goal-value">${valueMarkup(goal)}</div>${goal.meta ? `<div class="goal-meta">${escapeHtml(goal.meta)}</div>` : ''}${progressMarkup(goal, true)}</header><section class="detail-section"><h2>Этапы</h2><p class="section-note">Для простого этапа используйте 0 из 1, а после выполнения — 1 из 1.</p><ul class="milestone-list">${goal.milestones.length ? goal.milestones.map(milestoneEditorMarkup).join('') : '<li class="goal-meta">Пока нет этапов.</li>'}</ul><form class="form add-milestone" data-add-milestone><h3>Новый этап</h3><label>Название<input name="label" maxlength="60" placeholder="Например, Курс B2" required /></label><div class="milestone-fields"><label>Сделано<input name="progressCurrent" type="number" min="0" max="1000000" step="any" value="0" required /></label><label>Из<input name="progressTarget" type="number" min="0.01" max="1000000" step="any" value="1" required /></label><label>Единица<input name="unit" maxlength="24" placeholder="дней, %, км" /></label><label>Статус<select name="state"><option value="future">Впереди</option><option value="current">Сейчас</option><option value="done">Сделано</option></select></label></div><button class="button" type="submit">Добавить этап</button></form></section><section class="detail-section"><h2>Последние изменения</h2><ul class="event-list">${goal.events.length ? goal.events.map((event) => `<li class="event-row"><span><span class="event-title">${escapeHtml(event.title)}</span>${event.detail ? `<span class="event-detail">${escapeHtml(event.detail)}</span>` : ''}</span><time class="event-date">${dateLabel(event.occurredAt)}</time></li>`).join('') : '<li class="goal-meta">Пока нет записей.</li>'}</ul><form class="form add-event" data-add-event><label>Что изменилось?<input name="title" maxlength="120" placeholder="Например, сходил на Sprachcafé" required /></label><label>Деталь (необязательно)<input name="detail" maxlength="160" placeholder="90 минут" /></label><button class="button button-primary" type="submit">Записать</button></form></section><section class="detail-section"><h2>Настройки цели</h2><div class="settings-actions"><button class="button" data-edit-goal>Изменить цель</button><button class="button button-danger" data-delete-goal>Удалить цель</button></div></section></section></div>`;
+  app.innerHTML = `<div class="app-shell"><section class="panel"><button class="back" data-back>‹ Цели</button><header class="detail-head"><h1 class="goal-title">${escapeHtml(goal.title)}</h1><div class="goal-value">${valueMarkup(goal)}</div>${goal.meta ? `<div class="goal-meta">${escapeHtml(goal.meta)}</div>` : ''}${progressMarkup(goal, true)}</header><section class="detail-section"><div class="section-title-row"><h2>Этапы</h2><span class="autosave-status" data-autosave-status aria-live="polite"></span></div><p class="section-note">Меняйте данные прямо в полях — они сохраняются автоматически. Этапы можно перетаскивать за маркер справа.</p><ul class="milestone-list">${goal.milestones.length ? goal.milestones.map(milestoneEditorMarkup).join('') : '<li class="goal-meta">Пока нет этапов.</li>'}</ul><form class="form add-milestone" data-add-milestone><h3>Новый этап</h3><label>Название<input name="label" maxlength="60" placeholder="Например, Курс B2" required /></label><div class="milestone-fields"><label>Сделано<input name="progressCurrent" type="number" min="0" max="1000000" step="any" value="0" required /></label><label>Из<input name="progressTarget" type="number" min="0.01" max="1000000" step="any" value="1" required /></label><label>Единица<input name="unit" maxlength="24" placeholder="дней, %, км" /></label><label>Статус<select name="state"><option value="future">Впереди</option><option value="current">Сейчас</option><option value="done">Сделано</option></select></label></div><button class="button button-primary" type="submit">Добавить этап</button></form></section><section class="detail-section"><h2>Последние изменения</h2><ul class="event-list">${goal.events.length ? goal.events.map((event) => `<li class="event-row"><span><span class="event-title">${escapeHtml(event.title)}</span>${event.detail ? `<span class="event-detail">${escapeHtml(event.detail)}</span>` : ''}</span><time class="event-date">${dateLabel(event.occurredAt)}</time></li>`).join('') : '<li class="goal-meta">Пока нет записей.</li>'}</ul><form class="form add-event" data-add-event><label>Что изменилось?<input name="title" maxlength="120" placeholder="Например, сходил на Sprachcafé" required /></label><label>Деталь (необязательно)<input name="detail" maxlength="160" placeholder="90 минут" /></label><button class="button button-primary" type="submit">Записать</button></form></section><section class="detail-section"><h2>Настройки цели</h2><div class="settings-actions"><button class="button" data-edit-goal>Изменить цель</button><button class="button button-danger" data-delete-goal>Удалить цель</button></div></section></section></div>`;
   app.querySelector('[data-back]').addEventListener('click', () => { state.selectedId = null; renderHome(); });
-  app.querySelectorAll('[data-edit-milestone]').forEach((form) => form.addEventListener('submit', saveMilestone));
+  app.querySelectorAll('[data-edit-milestone]').forEach((form) => {
+    form.addEventListener('submit', (event) => event.preventDefault());
+    form.addEventListener('input', scheduleMilestoneSave);
+    form.addEventListener('change', scheduleMilestoneSave);
+  });
   app.querySelectorAll('[data-delete-milestone]').forEach((button) => button.addEventListener('click', deleteMilestone));
+  bindMilestoneReordering();
   app.querySelector('[data-add-milestone]').addEventListener('submit', addMilestone);
   app.querySelector('[data-add-event]').addEventListener('submit', addEvent);
   app.querySelector('[data-edit-goal]').addEventListener('click', () => openGoalDialog(goal));
@@ -122,19 +127,126 @@ async function addMilestone(event) {
   try { await api(`/api/goals/${state.selectedId}/milestones`, { method: 'POST', body: JSON.stringify({ workspaceId: state.workspaceId, ...data }) }); await refresh(); renderDetail(); notice('Этап добавлен'); } catch (error) { notice(error.message); }
 }
 
-async function saveMilestone(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
+function setAutosaveStatus(message, isError = false) {
+  const status = app.querySelector('[data-autosave-status]');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('is-error', isError);
+}
+
+function milestoneData(form) {
   const data = Object.fromEntries(new FormData(form));
+  const target = Math.max(0.01, Number(data.progressTarget) || 1);
+  const current = Math.max(0, Math.min(target, Number(data.progressCurrent) || 0));
+  form.elements.progressCurrent.value = current;
+  form.elements.progressTarget.value = target;
+  return { ...data, progressCurrent: current, progressTarget: target };
+}
+
+function updateMilestonePreview(form, data) {
+  const goal = state.goals.find((item) => item.id === state.selectedId);
+  const milestone = goal?.milestones.find((item) => item.id === form.dataset.editMilestone);
+  if (!goal || !milestone) return;
+  Object.assign(milestone, data);
+  const tiles = app.querySelector('.detail-head .tiles');
+  if (tiles) tiles.outerHTML = progressMarkup(goal, true);
+}
+
+function scheduleMilestoneSave(event) {
+  const form = event.currentTarget;
+  window.clearTimeout(form.saveTimer);
+  if (!form.checkValidity()) {
+    setAutosaveStatus('Проверьте значения', true);
+    return;
+  }
+  const data = milestoneData(form);
+  updateMilestonePreview(form, data);
+  setAutosaveStatus('Сохраняю…');
+  form.saveTimer = window.setTimeout(() => persistMilestone(form), event.type === 'change' ? 80 : 550);
+}
+
+async function persistMilestone(form) {
+  window.clearTimeout(form.saveTimer);
+  if (!form.isConnected || !form.checkValidity()) return;
+  const data = milestoneData(form);
+  const version = (form.saveVersion || 0) + 1;
+  form.saveVersion = version;
   try {
     await api(`/api/milestones/${form.dataset.editMilestone}`, { method: 'PUT', body: JSON.stringify({ workspaceId: state.workspaceId, ...data }) });
-    await refresh(); renderDetail(); notice('Этап сохранён');
-  } catch (error) { notice(error.message); }
+    if (form.saveVersion === version) setAutosaveStatus('Сохранено');
+  } catch (error) {
+    if (form.saveVersion === version) setAutosaveStatus('Не сохранено', true);
+    notice(error.message);
+  }
+}
+
+async function persistMilestoneOrder(list) {
+  const ids = [...list.querySelectorAll('[data-milestone-id]')].map((item) => item.dataset.milestoneId);
+  const goal = state.goals.find((item) => item.id === state.selectedId);
+  if (!goal) return;
+  const byId = new Map(goal.milestones.map((item) => [item.id, item]));
+  goal.milestones = ids.map((id) => byId.get(id)).filter(Boolean);
+  const tiles = app.querySelector('.detail-head .tiles');
+  if (tiles) tiles.outerHTML = progressMarkup(goal, true);
+  setAutosaveStatus('Сохраняю порядок…');
+  try {
+    await api(`/api/goals/${goal.id}/milestones/order`, { method: 'PUT', body: JSON.stringify({ workspaceId: state.workspaceId, milestoneIds: ids }) });
+    setAutosaveStatus('Порядок сохранён');
+  } catch (error) {
+    notice(error.message);
+    await refresh(); renderDetail();
+  }
+}
+
+function bindMilestoneReordering() {
+  const list = app.querySelector('.milestone-list');
+  if (!list) return;
+  list.querySelectorAll('.drag-handle').forEach((handle) => {
+    const item = handle.closest('[data-milestone-id]');
+    handle.addEventListener('keydown', (event) => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const sibling = event.key === 'ArrowUp' ? item.previousElementSibling : item.nextElementSibling;
+      if (!sibling?.matches('[data-milestone-id]')) return;
+      if (event.key === 'ArrowUp') list.insertBefore(item, sibling);
+      else list.insertBefore(sibling, item);
+      handle.focus();
+      persistMilestoneOrder(list);
+    });
+    handle.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      const initialOrder = [...list.querySelectorAll('[data-milestone-id]')].map((row) => row.dataset.milestoneId).join(',');
+      item.classList.add('is-dragging');
+      handle.setPointerCapture(event.pointerId);
+      const move = (moveEvent) => {
+        const over = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('[data-milestone-id]');
+        if (!over || over === item || over.parentElement !== list) return;
+        const rect = over.getBoundingClientRect();
+        list.insertBefore(item, moveEvent.clientY < rect.top + rect.height / 2 ? over : over.nextElementSibling);
+        if (moveEvent.clientY < 70) window.scrollBy(0, -12);
+        if (moveEvent.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
+      };
+      const finish = () => {
+        item.classList.remove('is-dragging');
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', finish);
+        handle.removeEventListener('pointercancel', finish);
+        const nextOrder = [...list.querySelectorAll('[data-milestone-id]')].map((row) => row.dataset.milestoneId).join(',');
+        if (nextOrder !== initialOrder) persistMilestoneOrder(list);
+      };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', finish);
+      handle.addEventListener('pointercancel', finish);
+    });
+  });
 }
 
 async function deleteMilestone(event) {
   const id = event.currentTarget.dataset.deleteMilestone;
   if (!confirm('Удалить этот этап?')) return;
+  const form = event.currentTarget.closest('form');
+  if (form) window.clearTimeout(form.saveTimer);
   try {
     await api(`/api/milestones/${id}?workspaceId=${state.workspaceId}`, { method: 'DELETE' });
     await refresh(); renderDetail(); notice('Этап удалён');
