@@ -50,12 +50,41 @@ function milestoneValues(milestone) {
   return { current, target, percentage: Math.round((current / target) * 100) };
 }
 
+function segmentDimensions(count) {
+  const preferredRatio = 1.65;
+  let best = { columns: count, rows: 1, score: Number.POSITIVE_INFINITY };
+  for (let rows = 1; rows <= count; rows += 1) {
+    const columns = Math.ceil(count / rows);
+    const empty = columns * rows - count;
+    const score = Math.abs(columns / rows - preferredRatio) + (empty / count) * 0.7;
+    if (score < best.score) best = { columns, rows, score };
+  }
+  return best;
+}
+
+function segmentMarkup(current, target) {
+  const count = Math.round(target);
+  const { columns, rows } = segmentDimensions(count);
+  const cells = Array.from({ length: count }, (_, index) => {
+    const fill = Math.max(0, Math.min(1, current - index));
+    const className = fill >= 1 ? 'is-filled' : fill > 0 ? 'is-partial' : '';
+    const style = fill > 0 && fill < 1 ? ` style="--segment-progress:${Math.round(fill * 100)}%"` : '';
+    return `<span class="segment-cell ${className}"${style}></span>`;
+  }).join('');
+  const density = count > 160 ? 'dense' : count > 64 ? 'compact' : '';
+  return `<span class="segment-grid ${density}" style="--segment-columns:${columns};--segment-rows:${rows}" aria-hidden="true">${cells}</span>`;
+}
+
 function tileMarkup(milestone) {
   const { current, target, percentage } = milestoneValues(milestone);
   const complete = current >= target;
   const measured = target > 1 || milestone.unit;
+  const segmented = Number.isInteger(target) && target >= 4 && target <= 366;
   const count = measured ? `<span class="tile-count">${current}/${target}${milestone.unit ? ` ${escapeHtml(milestone.unit)}` : ''}</span>` : '';
-  return `<span class="tile-wrap"><span class="tile ${milestone.state}" aria-label="${escapeHtml(milestone.label)}: ${percentage}%"><span class="tile-fill" style="width:${percentage}%"></span><span class="tile-mark">${complete ? '✓' : ''}</span></span><span class="tile-label">${escapeHtml(milestone.label)}</span>${count}</span>`;
+  const visual = segmented
+    ? segmentMarkup(current, target)
+    : `<span class="tile-fill" style="width:${percentage}%"></span><span class="tile-mark">${complete ? '✓' : ''}</span>`;
+  return `<span class="tile-wrap"><span class="tile ${milestone.state} ${segmented ? 'segmented' : ''}" aria-label="${escapeHtml(milestone.label)}: ${current} из ${target}${milestone.unit ? ` ${escapeHtml(milestone.unit)}` : ''}">${visual}</span><span class="tile-label">${escapeHtml(milestone.label)}</span>${count}</span>`;
 }
 
 function progressMarkup(goal, detail = false) {
