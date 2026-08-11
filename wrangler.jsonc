@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "goals-tracker",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-08-11",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "goals-tracker-db",
+      "database_id": "eb49d068-e78f-48ba-ac68-b6c8ebc25097",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
+
