@@ -11,7 +11,15 @@ type GoalInput = {
   targetValue: string;
   meta?: string;
   accent?: string;
-  milestones?: Array<{ label: string; state: 'done' | 'current' | 'future' }>;
+  milestones?: MilestoneInput[];
+};
+
+type MilestoneInput = {
+  label: string;
+  state?: 'done' | 'current' | 'future';
+  progressCurrent?: number;
+  progressTarget?: number;
+  unit?: string;
 };
 
 const json = (data: unknown, init: ResponseInit = {}) =>
@@ -23,6 +31,15 @@ const json = (data: unknown, init: ResponseInit = {}) =>
 const clean = (value: unknown, limit = 140) => String(value ?? '').trim().slice(0, limit);
 const validState = (value: unknown): 'done' | 'current' | 'future' =>
   value === 'done' || value === 'current' || value === 'future' ? value : 'future';
+const progressNumber = (value: unknown, fallback: number) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.min(1_000_000, parsed)) : fallback;
+};
+const milestoneProgress = (input: MilestoneInput) => {
+  const target = Math.max(0.01, progressNumber(input.progressTarget, 1));
+  const current = Math.min(target, progressNumber(input.progressCurrent, 0));
+  return { current, target };
+};
 
 async function body<T>(request: Request): Promise<T> {
   return request.json<T>();
@@ -44,7 +61,7 @@ async function getGoals(env: Env, workspaceId: string) {
   const result = [];
   for (const goal of goals.results) {
     const [milestones, events] = await Promise.all([
-      env.DB.prepare('SELECT id, label, state, sort_order AS sortOrder FROM milestones WHERE goal_id = ? ORDER BY sort_order, created_at')
+      env.DB.prepare('SELECT id, label, state, progress_current AS progressCurrent, progress_target AS progressTarget, unit, sort_order AS sortOrder FROM milestones WHERE goal_id = ? ORDER BY sort_order, created_at')
         .bind(goal.id)
         .all(),
       env.DB.prepare('SELECT id, title, detail, occurred_at AS occurredAt FROM events WHERE goal_id = ? ORDER BY occurred_at DESC LIMIT 8')
@@ -63,13 +80,13 @@ async function seedWorkspace(env: Env, workspaceId: string) {
       goalType: 'journey',
       currentValue: 'A2',
       targetValue: 'B2',
-      meta: 'Курс 18 из 25 · ≈ 7 месяцев',
+      meta: '≈ 7 месяцев',
       accent: 'vermillion',
       milestones: [
-        { label: 'A2', state: 'done' },
-        { label: 'Курс', state: 'current' },
-        { label: 'B1', state: 'future' },
-        { label: 'B2', state: 'future' },
+        { label: 'A2', state: 'done', progressCurrent: 1, progressTarget: 1 },
+        { label: 'Курс B1', state: 'current', progressCurrent: 15, progressTarget: 50, unit: 'дней' },
+        { label: 'B1', state: 'future', progressCurrent: 0, progressTarget: 1 },
+        { label: 'B2', state: 'future', progressCurrent: 0, progressTarget: 1 },
       ],
     },
     {
@@ -80,11 +97,11 @@ async function seedWorkspace(env: Env, workspaceId: string) {
       meta: 'Год назад · 60 кг',
       accent: 'vermillion',
       milestones: [
-        { label: '60', state: 'done' },
-        { label: '70', state: 'done' },
-        { label: '80', state: 'current' },
-        { label: '90', state: 'future' },
-        { label: '100', state: 'future' },
+        { label: '60', state: 'done', progressCurrent: 1, progressTarget: 1 },
+        { label: '70', state: 'done', progressCurrent: 1, progressTarget: 1 },
+        { label: '80', state: 'current', progressCurrent: 1, progressTarget: 1 },
+        { label: '90', state: 'future', progressCurrent: 0, progressTarget: 1 },
+        { label: '100', state: 'future', progressCurrent: 0, progressTarget: 1 },
       ],
     },
     {
@@ -92,13 +109,13 @@ async function seedWorkspace(env: Env, workspaceId: string) {
       goalType: 'collection',
       currentValue: '1 из 3 квартир',
       targetValue: '3 квартиры',
-      meta: 'Ипотека погашена на 42%',
+      meta: '',
       accent: 'vermillion',
       milestones: [
-        { label: 'Квартира 1', state: 'done' },
-        { label: 'Квартира 2', state: 'future' },
-        { label: 'Квартира 3', state: 'future' },
-        { label: 'Ипотека', state: 'current' },
+        { label: 'Квартира 1', state: 'done', progressCurrent: 1, progressTarget: 1 },
+        { label: 'Квартира 2', state: 'future', progressCurrent: 0, progressTarget: 1 },
+        { label: 'Квартира 3', state: 'future', progressCurrent: 0, progressTarget: 1 },
+        { label: 'Ипотека', state: 'current', progressCurrent: 42, progressTarget: 100, unit: '%' },
       ],
     },
   ];
@@ -138,12 +155,16 @@ async function createGoal(env: Env, input: GoalInput, sortOrder?: number) {
   for (const [index, milestone] of (input.milestones || []).entries()) {
     const label = clean(milestone.label, 60);
     if (label) {
+      const progress = milestoneProgress(milestone);
       statements.push(
-        env.DB.prepare('INSERT INTO milestones (id, goal_id, label, state, sort_order) VALUES (?, ?, ?, ?, ?)').bind(
+        env.DB.prepare('INSERT INTO milestones (id, goal_id, label, state, progress_current, progress_target, unit, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(
           crypto.randomUUID(),
           goalId,
           label,
           validState(milestone.state),
+          progress.current,
+          progress.target,
+          clean(milestone.unit, 24),
           index,
         ),
       );
@@ -213,7 +234,7 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
     }
 
     if (parts[1] === 'goals' && parts[2] && parts[3] === 'milestones' && method === 'POST') {
-      const payload = await body<{ workspaceId: string; label: string; state?: string }>(request);
+      const payload = await body<MilestoneInput & { workspaceId: string }>(request);
       const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?').bind(parts[2], payload.workspaceId).first();
       if (!goal) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const label = clean(payload.label, 60);
@@ -222,22 +243,28 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
         .bind(parts[2])
         .first<{ next: number }>();
       const id = crypto.randomUUID();
-      await env.DB.prepare('INSERT INTO milestones (id, goal_id, label, state, sort_order) VALUES (?, ?, ?, ?, ?)')
-        .bind(id, parts[2], label, validState(payload.state), next?.next ?? 0)
+      const progress = milestoneProgress(payload);
+      await env.DB.prepare('INSERT INTO milestones (id, goal_id, label, state, progress_current, progress_target, unit, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(id, parts[2], label, validState(payload.state), progress.current, progress.target, clean(payload.unit, 24), next?.next ?? 0)
         .run();
       return json({ id }, { status: 201 });
     }
 
     if (parts[1] === 'milestones' && parts[2] && method === 'PUT') {
-      const payload = await body<{ workspaceId: string; label?: string; state?: string }>(request);
+      const payload = await body<MilestoneInput & { workspaceId: string }>(request);
       const milestone = await env.DB.prepare(
-        'SELECT milestones.id FROM milestones JOIN goals ON goals.id = milestones.goal_id WHERE milestones.id = ? AND goals.workspace_id = ?',
+        'SELECT milestones.id, milestones.label, milestones.state, milestones.progress_current AS progressCurrent, milestones.progress_target AS progressTarget, milestones.unit FROM milestones JOIN goals ON goals.id = milestones.goal_id WHERE milestones.id = ? AND goals.workspace_id = ?',
       )
         .bind(parts[2], payload.workspaceId)
-        .first();
+        .first<{ id: string; label: string; state: 'done' | 'current' | 'future'; progressCurrent: number; progressTarget: number; unit: string }>();
       if (!milestone) return json({ error: 'Этап не найден.' }, { status: 404 });
-      await env.DB.prepare("UPDATE milestones SET label = COALESCE(NULLIF(?, ''), label), state = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?")
-        .bind(clean(payload.label, 60), validState(payload.state), parts[2])
+      const progress = milestoneProgress({
+        ...payload,
+        progressCurrent: payload.progressCurrent ?? milestone.progressCurrent,
+        progressTarget: payload.progressTarget ?? milestone.progressTarget,
+      });
+      await env.DB.prepare("UPDATE milestones SET label = COALESCE(NULLIF(?, ''), label), state = ?, progress_current = ?, progress_target = ?, unit = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?")
+        .bind(clean(payload.label ?? milestone.label, 60), validState(payload.state ?? milestone.state), progress.current, progress.target, clean(payload.unit ?? milestone.unit, 24), parts[2])
         .run();
       return json({ ok: true });
     }
@@ -278,4 +305,3 @@ export default {
     return env.ASSETS.fetch(request);
   },
 };
-
