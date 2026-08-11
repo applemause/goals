@@ -32,15 +32,14 @@ button { color: inherit; }
 .goal-value { display: block; margin: 23px 0 13px; font-size: clamp(2.35rem, 11.2vw, 5.15rem); line-height: .94; font-weight: 400; letter-spacing: -.07em; overflow-wrap: anywhere; }
 .goal-meta { display: block; color: var(--muted); font-size: 1.05rem; line-height: 1.35; }
 .tiles { display: flex; gap: clamp(7px, 2.4vw, 14px); margin-top: 27px; align-items: start; }
-.tile-wrap { display: grid; gap: 9px; min-width: 0; flex: 1; text-align: center; }
-.tile { display: grid; min-height: 48px; place-items: center; border-radius: 9px; background: var(--future); color: transparent; }
-.tile.done { background: var(--ink); color: var(--paper); }
-.tile.current { background: var(--accent); color: white; }
-.tile-label { color: var(--muted); font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tile.tiny { min-height: 28px; border-radius: 6px; }
-.tile.wide { flex: 2.5; }
-.tile-row { display: grid; gap: 13px; margin-top: 27px; }
-.tile-row .tiles { margin: 0; }
+.tile-wrap { display: grid; grid-template-rows: 48px auto auto; gap: 7px; min-width: 0; flex: 1; text-align: center; }
+.tile { position: relative; display: grid; min-height: 48px; place-items: center; overflow: hidden; border-radius: 9px; background: var(--future); }
+.tile-fill { position: absolute; inset: 0 auto 0 0; min-width: 0; background: var(--ink); }
+.tile.current .tile-fill { background: var(--accent); }
+.tile.future .tile-fill { background: #a7a196; }
+.tile-mark { position: relative; z-index: 1; color: var(--paper); font-size: 1.38rem; font-weight: 500; }
+.tile-label { color: var(--muted); font-size: .88rem; line-height: 1.15; overflow-wrap: anywhere; }
+.tile-count { color: var(--ink); font-size: .78rem; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .empty { padding: 64px 0; color: var(--muted); text-align: center; }
 
 .panel { padding: 20px 0 40px; }
@@ -50,10 +49,18 @@ button { color: inherit; }
 .detail-section { padding: 27px 0; border-bottom: 1px solid var(--line); }
 .detail-section h2 { margin: 0 0 18px; font-size: 1.22rem; font-weight: 500; letter-spacing: -.03em; }
 .milestone-list, .event-list { margin: 0; padding: 0; list-style: none; }
-.milestone-row, .event-row { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid color-mix(in srgb, var(--line), transparent 30%); }
-.milestone-row:first-child, .event-row:first-child { border-top: 0; }
-.milestone-name { font-weight: 500; }
-.status-select { border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--muted); padding: 2px 0; }
+.event-row { display: flex; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid color-mix(in srgb, var(--line), transparent 30%); }
+.event-row:first-child { border-top: 0; }
+.section-note { margin: -8px 0 20px; max-width: 520px; color: var(--muted); font-size: .92rem; line-height: 1.4; }
+.milestone-card { padding: 18px 0; border-top: 1px solid color-mix(in srgb, var(--line), transparent 20%); }
+.milestone-card:first-child { border-top: 0; padding-top: 0; }
+.milestone-form { display: grid; gap: 12px; }
+.milestone-form label, .milestone-fields label { display: grid; gap: 6px; color: var(--muted); font-size: .78rem; }
+.milestone-form input, .milestone-form select, .milestone-fields input, .milestone-fields select { width: 100%; min-width: 0; min-height: 42px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.25); color: var(--ink); padding: 0 10px; outline-color: var(--accent); }
+.milestone-title-field input { border-color: transparent; border-bottom-color: var(--line); border-radius: 0; background: transparent; padding-inline: 0; font-size: 1.08rem; font-weight: 500; }
+.milestone-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.milestone-actions { display: flex; align-items: center; gap: 18px; }
+.delete-milestone { color: #9b2a20; }
 .event-title { font-weight: 500; }
 .event-detail, .event-date { display: block; color: var(--muted); font-size: .94rem; margin-top: 3px; }
 .button { min-height: 46px; padding: 0 17px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
@@ -67,6 +74,9 @@ button { color: inherit; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 4px; }
 .add-milestone, .add-event { margin-top: 20px; }
+.add-milestone { padding: 20px; border: 1px solid var(--line); border-radius: 12px; }
+.add-milestone h3 { margin: 0; font-size: 1.02rem; font-weight: 500; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .dialog { width: min(calc(100% - 32px), 520px); border: 0; border-radius: 16px; padding: 24px; background: var(--paper); color: var(--ink); box-shadow: 0 20px 80px rgba(0,0,0,.24); }
 .dialog::backdrop { background: rgba(20,19,17,.36); }
 .dialog-title { margin: 0 0 22px; font-size: 1.55rem; letter-spacing: -.04em; }
@@ -76,4 +86,10 @@ button { color: inherit; }
 @media (min-width: 640px) {
   .app-shell { padding-inline: 38px; }
   .goal-card { padding-block: 34px; }
+}
+
+@media (max-width: 520px) {
+  .milestone-fields { grid-template-columns: 1fr 1fr; }
+  .tile-label { font-size: .78rem; }
+  .tile-count { font-size: .72rem; }
 }
