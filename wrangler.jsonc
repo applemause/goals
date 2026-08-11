@@ -8,6 +8,12 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "routes": [
+    {
+      "pattern": "goals.kortlab.work",
+      "custom_domain": true
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -17,4 +23,3 @@
     }
   ]
 }
-
