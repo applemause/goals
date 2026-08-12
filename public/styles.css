@@ -30,7 +30,9 @@ button { color: inherit; }
 .goal-summary, .goal-progress-column { display: block; min-width: 0; }
 .goal-top { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
 .goal-title { margin: 0; font-size: 1.42rem; font-weight: 500; letter-spacing: -.04em; }
-.chevron { color: var(--muted); font-size: 2.25rem; font-weight: 300; line-height: 1; }
+.edit-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 6px; color: var(--muted); }
+.edit-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.goal-card:hover .edit-icon { background: rgba(23,23,21,.06); color: var(--ink); }
 .goal-value { display: block; margin: 23px 0 13px; font-size: clamp(2.35rem, 11.2vw, 5.15rem); line-height: .94; font-weight: 400; letter-spacing: -.07em; overflow-wrap: anywhere; }
 .goal-meta { display: block; color: var(--muted); font-size: 1.05rem; line-height: 1.35; }
 .overall-progress { display: grid; gap: 9px; margin-top: 23px; }
@@ -111,6 +113,23 @@ button { color: inherit; }
 .notice { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 40px); padding: 12px 16px; border-radius: 10px; background: var(--ink); color: var(--paper); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .notice.is-visible { opacity: 1; }
 
+.account-email { max-width: 210px; overflow: hidden; color: var(--muted); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.auth-shell { width: min(100%, 1120px); min-height: 100vh; margin: 0 auto; padding: 42px 24px; display: grid; align-items: center; gap: 54px; }
+.auth-intro { max-width: 600px; }
+.auth-wordmark { display: block; margin-bottom: 56px; font-size: 1.12rem; font-weight: 600; letter-spacing: -.03em; }
+.auth-intro h1 { margin: 0; font-size: clamp(3.25rem, 8vw, 6.8rem); line-height: .88; font-weight: 500; letter-spacing: -.075em; }
+.auth-intro p { max-width: 490px; margin: 28px 0 0; color: var(--muted); font-size: 1.12rem; line-height: 1.45; }
+.auth-panel { width: 100%; max-width: 430px; justify-self: end; padding: 30px; border: 1px solid var(--line); border-radius: 10px; }
+.auth-tabs { display: flex; gap: 22px; margin-bottom: 42px; border-bottom: 1px solid var(--line); }
+.auth-tab { position: relative; padding: 0 0 12px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.auth-tab.is-active { color: var(--ink); }
+.auth-tab.is-active::after { content: ''; position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--accent); }
+.auth-panel h2 { margin: 0; font-size: 1.85rem; font-weight: 500; letter-spacing: -.045em; }
+.auth-note { min-height: 3em; margin: 10px 0 24px; color: var(--muted); font-size: .92rem; line-height: 1.4; }
+.auth-form .button { margin-top: 4px; }
+.auth-form .button:disabled { opacity: .55; cursor: wait; }
+.auth-error { min-height: 1.3em; color: #9b2a20; font-size: .85rem; }
+
 @media (min-width: 640px) {
   .app-shell { padding-inline: 38px; }
   .goal-card { padding-block: 34px; }
@@ -122,7 +141,7 @@ button { color: inherit; }
   .app-title { font-size: 3.35rem; }
   .goal-card { position: relative; display: grid; grid-template-columns: minmax(280px, .84fr) minmax(430px, 1.16fr); gap: clamp(48px, 6vw, 86px); align-items: center; min-height: 248px; padding: 42px 42px 43px 0; }
   .goal-card .goal-top { display: block; }
-  .goal-card .chevron { position: absolute; top: 42px; right: 0; }
+  .goal-card .edit-icon { position: absolute; top: 42px; right: 0; }
   .goal-card .goal-value { margin: 24px 0 12px; font-size: clamp(3.1rem, 4.2vw, 4.35rem); }
   .goal-progress-column .overall-progress { margin-top: 0; }
   .goal-progress-column .tiles { margin-top: 32px; }
@@ -139,9 +158,17 @@ button { color: inherit; }
   .milestone-card:first-child { padding-top: 0; }
   .milestone-tools { top: 21px; }
   .milestone-card:first-child .milestone-tools { top: 0; }
+  .auth-shell { grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr); padding: 60px 48px; }
 }
 
 @media (max-width: 520px) {
+  .account-email { display: none; }
+  .header-actions { gap: 11px; }
+  .auth-shell { align-content: start; padding-top: 28px; gap: 44px; }
+  .auth-wordmark { margin-bottom: 40px; }
+  .auth-intro h1 { font-size: 3.65rem; }
+  .auth-intro p { margin-top: 22px; font-size: 1rem; }
+  .auth-panel { padding: 22px; }
   .milestone-card { padding-right: 68px; }
   .milestone-fields { grid-template-columns: 1fr 1fr; }
   .tile-label { font-size: .78rem; }
