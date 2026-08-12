@@ -7,7 +7,7 @@ const translations = {
   en: {
     appTitle: 'Path — goals', brand: 'Goals', heroTitle: 'See the path.<br />Keep moving.', heroText: 'A personal tracker without the noise. A big goal, clear milestones, and honest progress.',
     register: 'Sign up', login: 'Log in', createAccount: 'Create account', welcomeBack: 'Welcome back', registerNote: 'After signing up, you’ll get three simple demo goals. You can delete or reshape them.', loginNote: 'Your goals will be waiting right where you left them.', password: 'Password', passwordPlaceholder: 'At least 8 characters', accountCreated: 'Account created', loggedIn: 'You’re in', noWorkspace: 'This account has no workspace yet.', actionFailed: 'Could not complete the action.',
-    goals: 'Goals', logout: 'Log out', addGoal: 'Add goal', noGoals: 'No goals yet. Create your first one.', openGoal: 'Open goal: {title}', editGoalAria: 'Edit goal: {title}', edit: 'Edit',
+    goals: 'Goals', logout: 'Log out', addGoal: 'Add goal', accountMenu: 'Account menu', language: 'Language', noGoals: 'No goals yet. Create your first one.', openGoal: 'Open goal: {title}', editGoalAria: 'Edit goal: {title}', edit: 'Edit',
     addMilestonesHint: 'Add milestones to see the path.', outOf: '{current} of {target}', stagesCount: '{count} milestones', overallProgress: 'Overall progress', overallProgressAria: 'Overall goal progress',
     markDay: 'Mark a day', addBook: 'Add a book', logWorkout: 'Log a workout', addProgress: 'Add progress', done: 'Done', progress: 'Progress', adjustment: 'Adjustment', note: 'Note',
     takeStep: 'Take a step', progressHistoryHint: 'Progress will be saved to history', addStagesFirst: 'Add milestones in the editor first.', history: 'History', historyEmpty: 'Nothing here yet.', notePlaceholder: 'What is worth remembering about this goal?', addNote: 'Add note',
@@ -18,7 +18,7 @@ const translations = {
   de: {
     appTitle: 'Weg — Ziele', brand: 'Ziele', heroTitle: 'Den Weg sehen.<br />Weitergehen.', heroText: 'Ein persönlicher Tracker ohne Ablenkung. Ein großes Ziel, klare Etappen und ehrlicher Fortschritt.',
     register: 'Registrieren', login: 'Anmelden', createAccount: 'Konto erstellen', welcomeBack: 'Willkommen zurück', registerNote: 'Nach der Registrierung erscheinen drei einfache Demo-Ziele. Du kannst sie löschen oder anpassen.', loginNote: 'Deine Ziele warten genau dort, wo du aufgehört hast.', password: 'Passwort', passwordPlaceholder: 'Mindestens 8 Zeichen', accountCreated: 'Konto erstellt', loggedIn: 'Angemeldet', noWorkspace: 'Dieses Konto hat noch keinen Arbeitsbereich.', actionFailed: 'Die Aktion konnte nicht ausgeführt werden.',
-    goals: 'Ziele', logout: 'Abmelden', addGoal: 'Ziel hinzufügen', noGoals: 'Noch keine Ziele. Erstelle dein erstes.', openGoal: 'Ziel öffnen: {title}', editGoalAria: 'Ziel bearbeiten: {title}', edit: 'Bearbeiten',
+    goals: 'Ziele', logout: 'Abmelden', addGoal: 'Ziel hinzufügen', accountMenu: 'Kontomenü', language: 'Sprache', noGoals: 'Noch keine Ziele. Erstelle dein erstes.', openGoal: 'Ziel öffnen: {title}', editGoalAria: 'Ziel bearbeiten: {title}', edit: 'Bearbeiten',
     addMilestonesHint: 'Füge Etappen hinzu, um den Weg zu sehen.', outOf: '{current} von {target}', stagesCount: '{count} Etappen', overallProgress: 'Gesamtfortschritt', overallProgressAria: 'Gesamtfortschritt des Ziels',
     markDay: 'Tag markieren', addBook: 'Buch hinzufügen', logWorkout: 'Training eintragen', addProgress: 'Fortschritt hinzufügen', done: 'Fertig', progress: 'Fortschritt', adjustment: 'Korrektur', note: 'Notiz',
     takeStep: 'Einen Schritt machen', progressHistoryHint: 'Der Fortschritt wird im Verlauf gespeichert', addStagesFirst: 'Füge zuerst Etappen im Editor hinzu.', history: 'Verlauf', historyEmpty: 'Noch ist hier nichts.', notePlaceholder: 'Was möchtest du zu diesem Ziel festhalten?', addNote: 'Notiz hinzufügen',
@@ -29,7 +29,7 @@ const translations = {
   ru: {
     appTitle: 'Путь — цели', brand: 'Цели', heroTitle: 'Видеть путь.<br />Продолжать идти.', heroText: 'Личный трекер без лишнего шума. Большая цель, понятные этапы и честный прогресс.',
     register: 'Регистрация', login: 'Вход', createAccount: 'Создать аккаунт', welcomeBack: 'С возвращением', registerNote: 'После регистрации появятся три простые демо-цели. Их можно удалить или переделать.', loginNote: 'Ваши цели продолжат ждать там, где вы остановились.', password: 'Пароль', passwordPlaceholder: 'Минимум 8 символов', accountCreated: 'Аккаунт создан', loggedIn: 'Вы вошли', noWorkspace: 'У аккаунта пока нет доски.', actionFailed: 'Не удалось выполнить действие.',
-    goals: 'Цели', logout: 'Выйти', addGoal: 'Добавить цель', noGoals: 'Пока нет целей. Создайте первую.', openGoal: 'Открыть цель: {title}', editGoalAria: 'Редактировать цель: {title}', edit: 'Редактировать',
+    goals: 'Цели', logout: 'Выйти', addGoal: 'Добавить цель', accountMenu: 'Меню аккаунта', language: 'Язык', noGoals: 'Пока нет целей. Создайте первую.', openGoal: 'Открыть цель: {title}', editGoalAria: 'Редактировать цель: {title}', edit: 'Редактировать',
     addMilestonesHint: 'Добавьте этапы, чтобы видеть путь.', outOf: '{current} из {target}', stagesCount: '{count} подцели', overallProgress: 'Общий прогресс', overallProgressAria: 'Общий прогресс цели',
     markDay: 'Отметить день', addBook: 'Добавить книгу', logWorkout: 'Записать тренировку', addProgress: 'Добавить прогресс', done: 'Готово', progress: 'Прогресс', adjustment: 'Корректировка', note: 'Заметка',
     takeStep: 'Сделать шаг', progressHistoryHint: 'Прогресс сохранится в истории', addStagesFirst: 'Сначала добавьте этапы в редакторе.', history: 'История', historyEmpty: 'Пока здесь тихо.', notePlaceholder: 'Что важно запомнить об этой цели?', addNote: 'Добавить заметку',
@@ -48,6 +48,36 @@ function languageSwitcher() {
 
 function bindLanguageSwitcher() {
   app.querySelectorAll('[data-language]').forEach((button) => button.addEventListener('click', () => setLanguage(button.dataset.language)));
+}
+
+function accountMenuMarkup() {
+  return `<div class="account-menu"><button class="header-icon account-trigger" type="button" data-account-toggle aria-label="${t('accountMenu')}" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.8-4 3-6 6.5-6s5.7 2 6.5 6"/></svg></button><div class="account-popover" data-account-popover hidden><span class="account-menu-email">${escapeHtml(state.user?.email || '')}</span><div class="account-language"><span>${t('language')}</span>${languageSwitcher()}</div><button class="account-logout" type="button" data-logout>${t('logout')}</button></div></div>`;
+}
+
+function cleanupAccountMenu() {
+  state.menuCleanup?.();
+  state.menuCleanup = null;
+}
+
+function bindAccountMenu() {
+  cleanupAccountMenu();
+  const menu = app.querySelector('.account-menu');
+  const toggle = menu?.querySelector('[data-account-toggle]');
+  const popover = menu?.querySelector('[data-account-popover]');
+  if (!menu || !toggle || !popover) return;
+  const close = () => { popover.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+  toggle.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const opening = popover.hidden;
+    popover.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+  });
+  popover.addEventListener('click', (event) => event.stopPropagation());
+  const outside = () => close();
+  const keyboard = (event) => { if (event.key === 'Escape') { close(); toggle.focus(); } };
+  document.addEventListener('click', outside);
+  document.addEventListener('keydown', keyboard);
+  state.menuCleanup = () => { document.removeEventListener('click', outside); document.removeEventListener('keydown', keyboard); };
 }
 
 function setLanguage(language) {
@@ -100,6 +130,7 @@ async function ensureWorkspace() {
 }
 
 function renderAuth(mode = 'register') {
+  cleanupAccountMenu();
   const registering = mode === 'register';
   state.screen = mode;
   app.innerHTML = `<div class="auth-language">${languageSwitcher()}</div><div class="auth-shell"><section class="auth-intro"><span class="auth-wordmark">${t('brand')}</span><h1>${t('heroTitle')}</h1><p>${t('heroText')}</p></section><section class="auth-panel"><div class="auth-tabs"><button class="auth-tab ${registering ? 'is-active' : ''}" data-auth-mode="register">${t('register')}</button><button class="auth-tab ${!registering ? 'is-active' : ''}" data-auth-mode="login">${t('login')}</button></div><h2>${registering ? t('createAccount') : t('welcomeBack')}</h2><p class="auth-note">${registering ? t('registerNote') : t('loginNote')}</p><form class="form auth-form" data-auth-form><label>Email<input name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required /></label><label>${t('password')}<input name="password" type="password" autocomplete="${registering ? 'new-password' : 'current-password'}" minlength="8" maxlength="128" placeholder="${t('passwordPlaceholder')}" required /></label><button class="button button-primary" type="submit">${registering ? t('createAccount') : t('login')}</button><span class="auth-error" data-auth-error aria-live="polite"></span></form></section></div>`;
@@ -224,9 +255,11 @@ function goalCard(goal) {
 }
 
 function renderHome() {
+  cleanupAccountMenu();
   state.screen = 'home';
-  app.innerHTML = `<div class="app-shell"><header class="app-header"><h1 class="app-title">${t('goals')}</h1><div class="header-actions">${languageSwitcher()}<span class="account-email">${escapeHtml(state.user?.email || '')}</span><button class="header-link" data-logout>${t('logout')}</button><button class="add-goal" aria-label="${t('addGoal')}" data-add-goal>+</button></div></header><ul class="goal-list">${state.goals.length ? state.goals.map(goalCard).join('') : `<li class="empty">${t('noGoals')}</li>`}</ul></div>`;
+  app.innerHTML = `<div class="app-shell"><header class="app-header"><h1 class="app-title">${t('goals')}</h1><div class="header-actions"><button class="header-icon add-goal" aria-label="${t('addGoal')}" data-add-goal>+</button>${accountMenuMarkup()}</div></header><ul class="goal-list">${state.goals.length ? state.goals.map(goalCard).join('') : `<li class="empty">${t('noGoals')}</li>`}</ul></div>`;
   bindLanguageSwitcher();
+  bindAccountMenu();
   app.querySelector('[data-add-goal]')?.addEventListener('click', () => openGoalDialog());
   app.querySelector('[data-logout]')?.addEventListener('click', logout);
   app.querySelectorAll('[data-open-goal]').forEach((button) => button.addEventListener('click', () => { state.selectedId = button.dataset.openGoal; renderGoal(); }));
@@ -263,6 +296,7 @@ function eventMarkup(event, goal) {
 }
 
 function renderGoal() {
+  cleanupAccountMenu();
   const goal = state.goals.find((item) => item.id === state.selectedId);
   if (!goal) return renderHome();
   state.screen = 'goal';
@@ -305,6 +339,7 @@ function milestoneEditorMarkup(milestone) {
 }
 
 function renderEditor() {
+  cleanupAccountMenu();
   const goal = state.goals.find((item) => item.id === state.selectedId);
   if (!goal) return renderHome();
   state.screen = 'editor';
