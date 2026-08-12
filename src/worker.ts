@@ -22,6 +22,13 @@ type MilestoneInput = {
   unit?: string;
 };
 
+type AuthUser = { id: string; email: string };
+
+const SESSION_COOKIE = 'goals_session';
+const SESSION_DAYS = 30;
+const PASSWORD_ITERATIONS = 100_000;
+const PASSWORD_ROUNDS = 3;
+
 const json = (data: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(data), {
     ...init,
@@ -41,13 +48,71 @@ const milestoneProgress = (input: MilestoneInput) => {
   return { current, target };
 };
 
+const bytesToBase64 = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes));
+const base64ToBytes = (value: string) => Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+const safeEqual = (left: string, right: string) => {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  return difference === 0;
+};
+
+async function hashPassword(password: string, salt = crypto.getRandomValues(new Uint8Array(16))) {
+  let material = new TextEncoder().encode(password);
+  for (let round = 0; round < PASSWORD_ROUNDS; round += 1) {
+    const key = await crypto.subtle.importKey('raw', material, 'PBKDF2', false, ['deriveBits']);
+    const roundSalt = new Uint8Array(salt.length + 1);
+    roundSalt.set(salt);
+    roundSalt[salt.length] = round;
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: roundSalt, iterations: PASSWORD_ITERATIONS }, key, 256);
+    material = new Uint8Array(bits);
+  }
+  return { hash: bytesToBase64(material), salt: bytesToBase64(salt) };
+}
+
+async function verifyPassword(password: string, salt: string, expectedHash: string) {
+  const calculated = await hashPassword(password, base64ToBytes(salt));
+  return safeEqual(calculated.hash, expectedHash);
+}
+
+const cookieValue = (request: Request, name: string) => {
+  const cookies = request.headers.get('cookie') || '';
+  for (const part of cookies.split(';')) {
+    const [key, ...value] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(value.join('='));
+  }
+  return '';
+};
+
+const sessionCookie = (id: string, maxAge = SESSION_DAYS * 24 * 60 * 60) =>
+  `${SESSION_COOKIE}=${encodeURIComponent(id)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+
+async function currentUser(request: Request, env: Env): Promise<AuthUser | null> {
+  const sessionId = cookieValue(request, SESSION_COOKIE);
+  if (!sessionId) return null;
+  return env.DB.prepare(
+    "SELECT users.id, users.email FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.id = ? AND sessions.expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
+  )
+    .bind(sessionId)
+    .first<AuthUser>();
+}
+
+async function createSession(env: Env, userId: string) {
+  const id = `${crypto.randomUUID()}${crypto.randomUUID().replaceAll('-', '')}`;
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').bind(id, userId, expiresAt).run();
+  return id;
+}
+
+const validEmail = (email: string) => email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 async function body<T>(request: Request): Promise<T> {
   return request.json<T>();
 }
 
-async function getWorkspace(env: Env, workspaceId: string) {
-  return env.DB.prepare('SELECT id, name, created_at AS createdAt FROM workspaces WHERE id = ?')
-    .bind(workspaceId)
+async function getWorkspace(env: Env, workspaceId: string, userId: string) {
+  return env.DB.prepare('SELECT id, name, created_at AS createdAt FROM workspaces WHERE id = ? AND user_id = ?')
+    .bind(workspaceId, userId)
     .first();
 }
 
@@ -76,46 +141,42 @@ async function getGoals(env: Env, workspaceId: string) {
 async function seedWorkspace(env: Env, workspaceId: string) {
   const templates: Array<Omit<GoalInput, 'workspaceId'>> = [
     {
-      title: 'Немецкий B2',
-      goalType: 'journey',
-      currentValue: 'A2',
-      targetValue: 'B2',
-      meta: '≈ 7 месяцев',
-      accent: 'vermillion',
-      milestones: [
-        { label: 'A2', state: 'done', progressCurrent: 1, progressTarget: 1 },
-        { label: 'Курс B1', state: 'current', progressCurrent: 15, progressTarget: 50, unit: 'дней' },
-        { label: 'B1', state: 'future', progressCurrent: 0, progressTarget: 1 },
-        { label: 'B2', state: 'future', progressCurrent: 0, progressTarget: 1 },
-      ],
-    },
-    {
-      title: 'Сильное тело',
-      goalType: 'record',
-      currentValue: '80 кг',
-      targetValue: '100 кг',
-      meta: 'Год назад · 60 кг',
-      accent: 'vermillion',
-      milestones: [
-        { label: '60', state: 'done', progressCurrent: 1, progressTarget: 1 },
-        { label: '70', state: 'done', progressCurrent: 1, progressTarget: 1 },
-        { label: '80', state: 'current', progressCurrent: 1, progressTarget: 1 },
-        { label: '90', state: 'future', progressCurrent: 0, progressTarget: 1 },
-        { label: '100', state: 'future', progressCurrent: 0, progressTarget: 1 },
-      ],
-    },
-    {
-      title: 'Финансовая свобода',
+      title: 'Прочитать 12 книг',
       goalType: 'collection',
-      currentValue: '1 из 3 квартир',
-      targetValue: '3 квартиры',
-      meta: '',
+      currentValue: '3 книги',
+      targetValue: '12 книг',
+      meta: 'До конца года',
       accent: 'vermillion',
       milestones: [
-        { label: 'Квартира 1', state: 'done', progressCurrent: 1, progressTarget: 1 },
-        { label: 'Квартира 2', state: 'future', progressCurrent: 0, progressTarget: 1 },
-        { label: 'Квартира 3', state: 'future', progressCurrent: 0, progressTarget: 1 },
-        { label: 'Ипотека', state: 'current', progressCurrent: 42, progressTarget: 100, unit: '%' },
+        { label: 'Художественные', state: 'current', progressCurrent: 2, progressTarget: 5, unit: 'книг' },
+        { label: 'Нон-фикшн', state: 'current', progressCurrent: 1, progressTarget: 4, unit: 'книг' },
+        { label: 'Профессиональные', state: 'future', progressCurrent: 0, progressTarget: 3, unit: 'книг' },
+      ],
+    },
+    {
+      title: 'Пробежать 10 км',
+      goalType: 'journey',
+      currentValue: '3 км',
+      targetValue: '10 км',
+      meta: 'Три тренировки в неделю',
+      accent: 'vermillion',
+      milestones: [
+        { label: 'База', state: 'current', progressCurrent: 8, progressTarget: 12, unit: 'тренировок' },
+        { label: 'Темп', state: 'future', progressCurrent: 0, progressTarget: 10, unit: 'тренировок' },
+        { label: 'Дистанция', state: 'future', progressCurrent: 0, progressTarget: 8, unit: 'тренировок' },
+      ],
+    },
+    {
+      title: 'Накопить на отпуск',
+      goalType: 'collection',
+      currentValue: '450 €',
+      targetValue: '2 000 €',
+      meta: 'Поездка следующим летом',
+      accent: 'vermillion',
+      milestones: [
+        { label: 'Билеты', state: 'current', progressCurrent: 450, progressTarget: 800, unit: '€' },
+        { label: 'Жильё', state: 'future', progressCurrent: 0, progressTarget: 700, unit: '€' },
+        { label: 'Расходы', state: 'future', progressCurrent: 0, progressTarget: 500, unit: '€' },
       ],
     },
   ];
@@ -180,37 +241,106 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
   const method = request.method;
 
   try {
+    const origin = request.headers.get('origin');
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && origin && origin !== url.origin) {
+      return json({ error: 'Запрос с другого сайта отклонён.' }, { status: 403 });
+    }
+
+    if (pathname === '/api/auth/register' && method === 'POST') {
+      const payload = await body<{ email?: string; password?: string; legacyWorkspaceId?: string }>(request);
+      const email = clean(payload.email, 254).toLocaleLowerCase('en-US');
+      const password = String(payload.password || '');
+      if (!validEmail(email)) throw new Error('Введите корректный email.');
+      if (password.length < 8 || password.length > 128) throw new Error('Пароль должен содержать от 8 до 128 символов.');
+      if (await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()) {
+        throw new Error('Аккаунт с таким email уже существует.');
+      }
+
+      const userId = crypto.randomUUID();
+      const passwordData = await hashPassword(password);
+      const legacyId = clean(payload.legacyWorkspaceId, 80);
+      const legacy = legacyId
+        ? await env.DB.prepare('SELECT id FROM workspaces WHERE id = ? AND user_id IS NULL').bind(legacyId).first<{ id: string }>()
+        : null;
+      const workspaceId = legacy?.id || crypto.randomUUID();
+      const statements = [
+        env.DB.prepare('INSERT INTO users (id, email, password_hash, password_salt) VALUES (?, ?, ?, ?)')
+          .bind(userId, email, passwordData.hash, passwordData.salt),
+      ];
+      if (legacy) {
+        statements.push(env.DB.prepare("UPDATE workspaces SET user_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ? AND user_id IS NULL").bind(userId, workspaceId));
+      } else {
+        statements.push(env.DB.prepare('INSERT INTO workspaces (id, name, user_id) VALUES (?, ?, ?)').bind(workspaceId, 'Мои цели', userId));
+      }
+      await env.DB.batch(statements);
+      if (!legacy) await seedWorkspace(env, workspaceId);
+      const sessionId = await createSession(env, userId);
+      return json({ user: { id: userId, email }, workspaceId }, { status: 201, headers: { 'set-cookie': sessionCookie(sessionId) } });
+    }
+
+    if (pathname === '/api/auth/login' && method === 'POST') {
+      const payload = await body<{ email?: string; password?: string }>(request);
+      const email = clean(payload.email, 254).toLocaleLowerCase('en-US');
+      const password = String(payload.password || '');
+      const user = await env.DB.prepare('SELECT id, email, password_hash AS passwordHash, password_salt AS passwordSalt FROM users WHERE email = ?')
+        .bind(email)
+        .first<{ id: string; email: string; passwordHash: string; passwordSalt: string }>();
+      if (!user || !(await verifyPassword(password, user.passwordSalt, user.passwordHash))) {
+        return json({ error: 'Неверный email или пароль.' }, { status: 401 });
+      }
+      const sessionId = await createSession(env, user.id);
+      const workspace = await env.DB.prepare('SELECT id FROM workspaces WHERE user_id = ? ORDER BY created_at LIMIT 1').bind(user.id).first<{ id: string }>();
+      return json({ user: { id: user.id, email: user.email }, workspaceId: workspace?.id || null }, { headers: { 'set-cookie': sessionCookie(sessionId) } });
+    }
+
+    if (pathname === '/api/auth/logout' && method === 'POST') {
+      const sessionId = cookieValue(request, SESSION_COOKIE);
+      if (sessionId) await env.DB.prepare('DELETE FROM sessions WHERE id = ?').bind(sessionId).run();
+      return json({ ok: true }, { headers: { 'set-cookie': sessionCookie('', 0) } });
+    }
+
+    const user = await currentUser(request, env);
+    if (!user) return json({ error: 'Войдите в аккаунт.' }, { status: 401 });
+
+    if (pathname === '/api/auth/me' && method === 'GET') {
+      const workspaces = await env.DB.prepare('SELECT id, name, created_at AS createdAt FROM workspaces WHERE user_id = ? ORDER BY created_at')
+        .bind(user.id)
+        .all();
+      return json({ user, workspaces: workspaces.results });
+    }
+
     if (method === 'POST' && pathname === '/api/workspaces') {
       const payload = await body<{ name?: string }>(request);
       const id = crypto.randomUUID();
-      await env.DB.prepare('INSERT INTO workspaces (id, name) VALUES (?, ?)')
-        .bind(id, clean(payload.name || 'Мои цели', 80) || 'Мои цели')
+      await env.DB.prepare('INSERT INTO workspaces (id, name, user_id) VALUES (?, ?, ?)')
+        .bind(id, clean(payload.name || 'Мои цели', 80) || 'Мои цели', user.id)
         .run();
       await seedWorkspace(env, id);
       return json({ id });
     }
 
     if (parts[1] === 'workspaces' && parts[2] && method === 'GET') {
-      const workspace = await getWorkspace(env, parts[2]);
+      const workspace = await getWorkspace(env, parts[2], user.id);
       if (!workspace) return json({ error: 'Пространство не найдено.' }, { status: 404 });
       return json({ workspace, goals: await getGoals(env, parts[2]) });
     }
 
     if (pathname === '/api/goals' && method === 'GET') {
       const workspaceId = searchParams.get('workspaceId') || '';
-      if (!workspaceId || !(await getWorkspace(env, workspaceId))) return json({ error: 'Пространство не найдено.' }, { status: 404 });
+      if (!workspaceId || !(await getWorkspace(env, workspaceId, user.id))) return json({ error: 'Пространство не найдено.' }, { status: 404 });
       return json({ goals: await getGoals(env, workspaceId) });
     }
 
     if (pathname === '/api/goals' && method === 'POST') {
       const payload = await body<GoalInput>(request);
-      if (!(await getWorkspace(env, payload.workspaceId))) return json({ error: 'Пространство не найдено.' }, { status: 404 });
+      if (!(await getWorkspace(env, payload.workspaceId, user.id))) return json({ error: 'Пространство не найдено.' }, { status: 404 });
       const id = await createGoal(env, payload);
       return json({ id }, { status: 201 });
     }
 
     if (parts[1] === 'goals' && parts[2] && parts.length === 3 && method === 'PUT') {
       const payload = await body<GoalInput>(request);
+      if (!(await getWorkspace(env, payload.workspaceId, user.id))) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?')
         .bind(parts[2], payload.workspaceId)
         .first();
@@ -229,12 +359,14 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
 
     if (parts[1] === 'goals' && parts[2] && parts.length === 3 && method === 'DELETE') {
       const workspaceId = searchParams.get('workspaceId') || '';
+      if (!(await getWorkspace(env, workspaceId, user.id))) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const result = await env.DB.prepare('DELETE FROM goals WHERE id = ? AND workspace_id = ?').bind(parts[2], workspaceId).run();
       return json({ ok: result.meta.changes > 0 });
     }
 
     if (parts[1] === 'goals' && parts[2] && parts[3] === 'milestones' && parts[4] === 'order' && method === 'PUT') {
       const payload = await body<{ workspaceId: string; milestoneIds: string[] }>(request);
+      if (!(await getWorkspace(env, payload.workspaceId, user.id))) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?')
         .bind(parts[2], payload.workspaceId)
         .first();
@@ -258,6 +390,7 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
 
     if (parts[1] === 'goals' && parts[2] && parts[3] === 'milestones' && method === 'POST') {
       const payload = await body<MilestoneInput & { workspaceId: string }>(request);
+      if (!(await getWorkspace(env, payload.workspaceId, user.id))) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?').bind(parts[2], payload.workspaceId).first();
       if (!goal) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const label = clean(payload.label, 60);
@@ -276,9 +409,9 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
     if (parts[1] === 'milestones' && parts[2] && method === 'PUT') {
       const payload = await body<MilestoneInput & { workspaceId: string }>(request);
       const milestone = await env.DB.prepare(
-        'SELECT milestones.id, milestones.label, milestones.state, milestones.progress_current AS progressCurrent, milestones.progress_target AS progressTarget, milestones.unit FROM milestones JOIN goals ON goals.id = milestones.goal_id WHERE milestones.id = ? AND goals.workspace_id = ?',
+        'SELECT milestones.id, milestones.label, milestones.state, milestones.progress_current AS progressCurrent, milestones.progress_target AS progressTarget, milestones.unit FROM milestones JOIN goals ON goals.id = milestones.goal_id JOIN workspaces ON workspaces.id = goals.workspace_id WHERE milestones.id = ? AND goals.workspace_id = ? AND workspaces.user_id = ?',
       )
-        .bind(parts[2], payload.workspaceId)
+        .bind(parts[2], payload.workspaceId, user.id)
         .first<{ id: string; label: string; state: 'done' | 'current' | 'future'; progressCurrent: number; progressTarget: number; unit: string }>();
       if (!milestone) return json({ error: 'Этап не найден.' }, { status: 404 });
       const progress = milestoneProgress({
@@ -295,15 +428,16 @@ async function api(request: Request, env: Env, url: URL): Promise<Response> {
     if (parts[1] === 'milestones' && parts[2] && method === 'DELETE') {
       const workspaceId = searchParams.get('workspaceId') || '';
       await env.DB.prepare(
-        'DELETE FROM milestones WHERE id = ? AND goal_id IN (SELECT id FROM goals WHERE workspace_id = ?)',
+        'DELETE FROM milestones WHERE id = ? AND goal_id IN (SELECT goals.id FROM goals JOIN workspaces ON workspaces.id = goals.workspace_id WHERE goals.workspace_id = ? AND workspaces.user_id = ?)',
       )
-        .bind(parts[2], workspaceId)
+        .bind(parts[2], workspaceId, user.id)
         .run();
       return json({ ok: true });
     }
 
     if (parts[1] === 'goals' && parts[2] && parts[3] === 'events' && method === 'POST') {
       const payload = await body<{ workspaceId: string; title: string; detail?: string; occurredAt?: string }>(request);
+      if (!(await getWorkspace(env, payload.workspaceId, user.id))) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const goal = await env.DB.prepare('SELECT id FROM goals WHERE id = ? AND workspace_id = ?').bind(parts[2], payload.workspaceId).first();
       if (!goal) return json({ error: 'Цель не найдена.' }, { status: 404 });
       const title = clean(payload.title, 120);
