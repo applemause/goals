@@ -27,6 +27,7 @@ button { color: inherit; }
 
 .goal-list { margin: 0; padding: 0; list-style: none; }
 .goal-card { display: block; width: 100%; padding: 31px 0 32px; background: none; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; }
+.goal-summary, .goal-progress-column { display: block; min-width: 0; }
 .goal-top { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
 .goal-title { margin: 0; font-size: 1.42rem; font-weight: 500; letter-spacing: -.04em; }
 .chevron { color: var(--muted); font-size: 2.25rem; font-weight: 300; line-height: 1; }
@@ -36,7 +37,7 @@ button { color: inherit; }
 .overall-progress-copy { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; color: var(--muted); font-size: .88rem; line-height: 1.25; }
 .overall-progress-copy span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .overall-progress-copy strong { color: var(--ink); font-size: 1.05rem; font-weight: 560; letter-spacing: -.02em; }
-.overall-progress-track { height: 5px; overflow: hidden; border-radius: 2px; background: var(--line); }
+.overall-progress-track { display: block; height: 5px; overflow: hidden; border-radius: 2px; background: var(--line); }
 .overall-progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .25s ease; }
 .tiles { display: flex; gap: clamp(7px, 2.4vw, 14px); margin-top: 27px; align-items: start; }
 .tile-wrap { display: grid; grid-template-rows: 48px auto auto; gap: 7px; min-width: 0; flex: 1; text-align: center; }
@@ -60,6 +61,7 @@ button { color: inherit; }
 .panel { padding: 20px 0 40px; }
 .back { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .detail-head { padding: 38px 0 30px; border-bottom: 1px solid var(--line); }
+.detail-summary, .detail-progress { min-width: 0; }
 .detail-head .goal-value { margin-top: 21px; }
 .detail-section { padding: 27px 0; border-bottom: 1px solid var(--line); }
 .detail-section h2 { margin: 0 0 18px; font-size: 1.22rem; font-weight: 500; letter-spacing: -.03em; }
@@ -112,6 +114,31 @@ button { color: inherit; }
 @media (min-width: 640px) {
   .app-shell { padding-inline: 38px; }
   .goal-card { padding-block: 34px; }
+}
+
+@media (min-width: 900px) {
+  .app-shell { width: min(100%, 1180px); padding: 0 48px 64px; }
+  .app-header { min-height: 108px; }
+  .app-title { font-size: 3.35rem; }
+  .goal-card { position: relative; display: grid; grid-template-columns: minmax(280px, .84fr) minmax(430px, 1.16fr); gap: clamp(48px, 6vw, 86px); align-items: center; min-height: 248px; padding: 42px 42px 43px 0; }
+  .goal-card .goal-top { display: block; }
+  .goal-card .chevron { position: absolute; top: 42px; right: 0; }
+  .goal-card .goal-value { margin: 24px 0 12px; font-size: clamp(3.1rem, 4.2vw, 4.35rem); }
+  .goal-progress-column .overall-progress { margin-top: 0; }
+  .goal-progress-column .tiles { margin-top: 32px; }
+  .goal-progress-column .tile-wrap { grid-template-rows: 54px auto auto; }
+  .goal-progress-column .tile { min-height: 54px; }
+  .panel { padding-top: 30px; }
+  .detail-head { display: grid; grid-template-columns: minmax(280px, .84fr) minmax(430px, 1.16fr); gap: clamp(48px, 6vw, 86px); align-items: center; min-height: 280px; padding: 45px 0 46px; }
+  .detail-head .goal-value { margin: 24px 0 13px; font-size: clamp(3.1rem, 4.2vw, 4.35rem); }
+  .detail-progress .overall-progress { margin-top: 0; }
+  .detail-progress .tiles { margin-top: 32px; }
+  .detail-section { padding: 34px 0; }
+  .detail-section h2 { font-size: 1.35rem; }
+  .milestone-card { padding-block: 21px; }
+  .milestone-card:first-child { padding-top: 0; }
+  .milestone-tools { top: 21px; }
+  .milestone-card:first-child .milestone-tools { top: 0; }
 }
 
 @media (max-width: 520px) {
