@@ -19,7 +19,7 @@ button { color: inherit; }
 .app-shell { width: min(100%, 680px); margin: 0 auto; min-height: 100vh; padding: 0 24px 40px; }
 .app-header { display: flex; align-items: center; justify-content: space-between; min-height: 86px; border-bottom: 1px solid var(--line); }
 .app-title { margin: 0; font-size: clamp(2.2rem, 8vw, 3.4rem); line-height: .95; font-weight: 600; letter-spacing: -.06em; }
-.header-actions { display: flex; gap: 14px; align-items: center; }
+.header-actions { display: flex; gap: 3px; align-items: center; }
 .language-switcher { display: inline-flex; align-items: center; padding: 2px; border: 1px solid var(--line); border-radius: 7px; }
 .language-option { min-width: 32px; height: 27px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: .68rem; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
 .language-option:hover { color: var(--ink); }
@@ -27,8 +27,18 @@ button { color: inherit; }
 .auth-language { position: fixed; z-index: 2; top: 24px; right: 24px; }
 .header-link, .text-button { background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: none; }
 .header-link:hover, .text-button:hover { color: var(--ink); }
-.add-goal { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; background: transparent; font-size: 1.6rem; line-height: 1; cursor: pointer; }
-.add-goal:hover { border-color: var(--ink); }
+.header-icon { display: grid; width: 38px; height: 38px; padding: 0; place-items: center; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
+.header-icon:hover, .header-icon:focus-visible, .header-icon[aria-expanded="true"] { background: rgba(23,23,21,.06); color: var(--ink); }
+.header-icon:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+.add-goal { font-size: 1.65rem; font-weight: 300; line-height: 1; }
+.account-menu { position: relative; }
+.account-trigger svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+.account-popover { position: absolute; z-index: 20; top: calc(100% + 9px); right: 0; width: 260px; padding: 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); box-shadow: 0 16px 46px rgba(23,23,21,.13); }
+.account-popover[hidden] { display: none; }
+.account-menu-email { display: block; overflow: hidden; padding-bottom: 14px; border-bottom: 1px solid var(--line); color: var(--ink); font-size: .86rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-language { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 0; color: var(--muted); font-size: .82rem; }
+.account-logout { width: 100%; padding: 12px 0 0; border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--muted); text-align: left; cursor: pointer; }
+.account-logout:hover { color: var(--ink); }
 
 .goal-list { margin: 0; padding: 0; list-style: none; }
 .goal-card { position: relative; border-bottom: 1px solid var(--line); }
@@ -148,7 +158,6 @@ button { color: inherit; }
 .notice { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 40px); padding: 12px 16px; border-radius: 10px; background: var(--ink); color: var(--paper); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
 .notice.is-visible { opacity: 1; }
 
-.account-email { max-width: 210px; overflow: hidden; color: var(--muted); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
 .auth-shell { width: min(100%, 1120px); min-height: 100vh; margin: 0 auto; padding: 42px 24px; display: grid; align-items: center; gap: 54px; }
 .auth-intro { max-width: 600px; }
 .auth-wordmark { display: block; margin-bottom: 56px; font-size: 1.12rem; font-weight: 600; letter-spacing: -.03em; }
@@ -199,10 +208,9 @@ button { color: inherit; }
 }
 
 @media (max-width: 520px) {
-  .account-email { display: none; }
-  .header-actions { gap: 11px; }
-  .header-actions .language-switcher { order: -1; }
+  .header-actions { gap: 1px; }
   .language-option { min-width: 29px; padding-inline: 4px; }
+  .account-popover { position: fixed; top: 72px; right: 18px; left: 18px; width: auto; }
   .auth-language { top: 18px; right: 18px; }
   .auth-shell { align-content: start; padding-top: 28px; gap: 44px; }
   .auth-wordmark { margin-bottom: 40px; }
