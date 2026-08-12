@@ -32,6 +32,12 @@ button { color: inherit; }
 .chevron { color: var(--muted); font-size: 2.25rem; font-weight: 300; line-height: 1; }
 .goal-value { display: block; margin: 23px 0 13px; font-size: clamp(2.35rem, 11.2vw, 5.15rem); line-height: .94; font-weight: 400; letter-spacing: -.07em; overflow-wrap: anywhere; }
 .goal-meta { display: block; color: var(--muted); font-size: 1.05rem; line-height: 1.35; }
+.overall-progress { display: grid; gap: 9px; margin-top: 23px; }
+.overall-progress-copy { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; color: var(--muted); font-size: .88rem; line-height: 1.25; }
+.overall-progress-copy span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.overall-progress-copy strong { color: var(--ink); font-size: 1.05rem; font-weight: 560; letter-spacing: -.02em; }
+.overall-progress-track { height: 5px; overflow: hidden; border-radius: 2px; background: var(--line); }
+.overall-progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .25s ease; }
 .tiles { display: flex; gap: clamp(7px, 2.4vw, 14px); margin-top: 27px; align-items: start; }
 .tile-wrap { display: grid; grid-template-rows: 48px auto auto; gap: 7px; min-width: 0; flex: 1; text-align: center; }
 .tile { --segment-color: var(--ink); --segment-empty: rgba(244,241,233,.82); position: relative; display: grid; min-height: 48px; place-items: center; overflow: hidden; border-radius: 7px; background: var(--future); }
