@@ -1,6 +1,6 @@
 const app = document.querySelector('#app');
 const template = document.querySelector('#goal-form-template');
-const state = { workspaceId: null, workspace: null, goals: [], selectedId: null };
+const state = { user: null, workspaceId: null, workspace: null, goals: [], selectedId: null };
 
 const api = async (path, options = {}) => {
   const response = await fetch(path, {
@@ -8,7 +8,11 @@ const api = async (path, options = {}) => {
     ...options,
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Не удалось выполнить действие.');
+  if (!response.ok) {
+    const error = new Error(data.error || 'Не удалось выполнить действие.');
+    error.status = response.status;
+    throw error;
+  }
   return data;
 };
 
@@ -24,19 +28,41 @@ function notice(message) {
 }
 
 async function ensureWorkspace() {
+  const session = await api('/api/auth/me');
+  state.user = session.user;
   const saved = localStorage.getItem('goals.workspaceId');
-  if (saved) {
-    try {
-      const data = await api(`/api/workspaces/${saved}`);
-      state.workspaceId = saved; state.workspace = data.workspace; state.goals = data.goals;
-      return;
-    } catch { localStorage.removeItem('goals.workspaceId'); }
-  }
-  const created = await api('/api/workspaces', { method: 'POST', body: JSON.stringify({ name: 'Мои цели' }) });
-  localStorage.setItem('goals.workspaceId', created.id);
-  state.workspaceId = created.id;
-  const data = await api(`/api/workspaces/${created.id}`);
+  const workspaceId = session.workspaces.some((workspace) => workspace.id === saved) ? saved : session.workspaces[0]?.id;
+  if (!workspaceId) throw new Error('У аккаунта пока нет доски.');
+  localStorage.setItem('goals.workspaceId', workspaceId);
+  state.workspaceId = workspaceId;
+  const data = await api(`/api/workspaces/${workspaceId}`);
   state.workspace = data.workspace; state.goals = data.goals;
+}
+
+function renderAuth(mode = 'register') {
+  const registering = mode === 'register';
+  app.innerHTML = `<div class="auth-shell"><section class="auth-intro"><span class="auth-wordmark">Цели</span><h1>Видеть путь.<br />Продолжать идти.</h1><p>Личный трекер без лишнего шума. Большая цель, понятные этапы и честный прогресс.</p></section><section class="auth-panel"><div class="auth-tabs"><button class="auth-tab ${registering ? 'is-active' : ''}" data-auth-mode="register">Регистрация</button><button class="auth-tab ${!registering ? 'is-active' : ''}" data-auth-mode="login">Вход</button></div><h2>${registering ? 'Создать аккаунт' : 'С возвращением'}</h2><p class="auth-note">${registering ? 'После регистрации появятся три простые демо-цели. Их можно удалить или переделать.' : 'Ваши цели продолжат ждать там, где вы остановились.'}</p><form class="form auth-form" data-auth-form><label>Email<input name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required /></label><label>Пароль<input name="password" type="password" autocomplete="${registering ? 'new-password' : 'current-password'}" minlength="8" maxlength="128" placeholder="Минимум 8 символов" required /></label><button class="button button-primary" type="submit">${registering ? 'Создать аккаунт' : 'Войти'}</button><span class="auth-error" data-auth-error aria-live="polite"></span></form></section></div>`;
+  app.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => renderAuth(button.dataset.authMode)));
+  app.querySelector('[data-auth-form]').addEventListener('submit', (event) => submitAuth(event, mode));
+}
+
+async function submitAuth(event, mode) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('[type="submit"]');
+  const error = form.querySelector('[data-auth-error]');
+  const data = Object.fromEntries(new FormData(form));
+  button.disabled = true;
+  error.textContent = '';
+  try {
+    const payload = mode === 'register' ? { ...data, legacyWorkspaceId: localStorage.getItem('goals.workspaceId') || '' } : data;
+    const result = await api(`/api/auth/${mode}`, { method: 'POST', body: JSON.stringify(payload) });
+    if (result.workspaceId) localStorage.setItem('goals.workspaceId', result.workspaceId);
+    await ensureWorkspace(); renderHome(); notice(mode === 'register' ? 'Аккаунт создан' : 'Вы вошли');
+  } catch (authError) {
+    error.textContent = authError.message;
+    button.disabled = false;
+  }
 }
 
 async function refresh() {
@@ -132,13 +158,13 @@ function valueMarkup(goal) {
 }
 
 function goalCard(goal) {
-  return `<li><button class="goal-card" data-open-goal="${goal.id}"><span class="goal-summary"><span class="goal-top"><span class="goal-title">${escapeHtml(goal.title)}</span><span class="chevron">›</span></span><span class="goal-value">${valueMarkup(goal)}</span>${goal.meta ? `<span class="goal-meta">${escapeHtml(goal.meta)}</span>` : ''}</span><span class="goal-progress-column">${overallProgressMarkup(goal)}${progressMarkup(goal)}</span></button></li>`;
+  return `<li><button class="goal-card" data-open-goal="${goal.id}" aria-label="Редактировать цель: ${escapeHtml(goal.title)}"><span class="goal-summary"><span class="goal-top"><span class="goal-title">${escapeHtml(goal.title)}</span><span class="edit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 20 4.2-1 10.6-10.6a2.2 2.2 0 0 0-3.2-3.2L5 15.8 4 20Z" /><path d="m14.5 6.5 3 3" /></svg></span></span><span class="goal-value">${valueMarkup(goal)}</span>${goal.meta ? `<span class="goal-meta">${escapeHtml(goal.meta)}</span>` : ''}</span><span class="goal-progress-column">${overallProgressMarkup(goal)}${progressMarkup(goal)}</span></button></li>`;
 }
 
 function renderHome() {
-  app.innerHTML = `<div class="app-shell"><header class="app-header"><h1 class="app-title">Цели</h1><div class="header-actions"><button class="header-link" data-new-workspace>Новая доска</button><button class="add-goal" aria-label="Добавить цель" data-add-goal>+</button></div></header><ul class="goal-list">${state.goals.length ? state.goals.map(goalCard).join('') : '<li class="empty">Пока нет целей. Создайте первую.</li>'}</ul></div>`;
+  app.innerHTML = `<div class="app-shell"><header class="app-header"><h1 class="app-title">Цели</h1><div class="header-actions"><span class="account-email">${escapeHtml(state.user?.email || '')}</span><button class="header-link" data-logout>Выйти</button><button class="add-goal" aria-label="Добавить цель" data-add-goal>+</button></div></header><ul class="goal-list">${state.goals.length ? state.goals.map(goalCard).join('') : '<li class="empty">Пока нет целей. Создайте первую.</li>'}</ul></div>`;
   app.querySelector('[data-add-goal]')?.addEventListener('click', () => openGoalDialog());
-  app.querySelector('[data-new-workspace]')?.addEventListener('click', newWorkspace);
+  app.querySelector('[data-logout]')?.addEventListener('click', logout);
   app.querySelectorAll('[data-open-goal]').forEach((button) => button.addEventListener('click', () => { state.selectedId = button.dataset.openGoal; renderDetail(); }));
 }
 
@@ -334,4 +360,16 @@ async function newWorkspace() {
   localStorage.setItem('goals.workspaceId', created.id); state.workspaceId = created.id; state.selectedId = null; await refresh(); renderHome(); notice('Создана новая доска');
 }
 
-(async () => { try { await ensureWorkspace(); renderHome(); } catch (error) { app.innerHTML = `<div class="app-shell"><p class="empty">${escapeHtml(error.message || 'Не удалось загрузить приложение.')}</p></div>`; } })();
+async function logout() {
+  try { await api('/api/auth/logout', { method: 'POST', body: '{}' }); } catch { /* Session is cleared locally below. */ }
+  state.user = null; state.workspaceId = null; state.workspace = null; state.goals = []; state.selectedId = null;
+  renderAuth('login');
+}
+
+(async () => {
+  try { await ensureWorkspace(); renderHome(); }
+  catch (error) {
+    if (error.status === 401) renderAuth('register');
+    else app.innerHTML = `<div class="app-shell"><p class="empty">${escapeHtml(error.message || 'Не удалось загрузить приложение.')}</p></div>`;
+  }
+})();
