@@ -20,6 +20,11 @@ button { color: inherit; }
 .app-header { display: flex; align-items: center; justify-content: space-between; min-height: 86px; border-bottom: 1px solid var(--line); }
 .app-title { margin: 0; font-size: clamp(2.2rem, 8vw, 3.4rem); line-height: .95; font-weight: 600; letter-spacing: -.06em; }
 .header-actions { display: flex; gap: 14px; align-items: center; }
+.language-switcher { display: inline-flex; align-items: center; padding: 2px; border: 1px solid var(--line); border-radius: 7px; }
+.language-option { min-width: 32px; height: 27px; padding: 0 6px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: .68rem; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
+.language-option:hover { color: var(--ink); }
+.language-option.is-active { background: var(--ink); color: var(--paper); }
+.auth-language { position: fixed; z-index: 2; top: 24px; right: 24px; }
 .header-link, .text-button { background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: none; }
 .header-link:hover, .text-button:hover { color: var(--ink); }
 .add-goal { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; background: transparent; font-size: 1.6rem; line-height: 1; cursor: pointer; }
@@ -66,6 +71,7 @@ button { color: inherit; }
 .panel { padding: 20px 0 40px; }
 .back { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .view-nav { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.view-actions { display: flex; align-items: center; gap: 18px; }
 .edit-structure { display: inline-flex; align-items: center; gap: 7px; padding: 7px 0; border: 0; background: none; color: var(--muted); cursor: pointer; }
 .edit-structure:hover { color: var(--ink); }
 .edit-structure svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -195,6 +201,9 @@ button { color: inherit; }
 @media (max-width: 520px) {
   .account-email { display: none; }
   .header-actions { gap: 11px; }
+  .header-actions .language-switcher { order: -1; }
+  .language-option { min-width: 29px; padding-inline: 4px; }
+  .auth-language { top: 18px; right: 18px; }
   .auth-shell { align-content: start; padding-top: 28px; gap: 44px; }
   .auth-wordmark { margin-bottom: 40px; }
   .auth-intro h1 { font-size: 3.65rem; }
