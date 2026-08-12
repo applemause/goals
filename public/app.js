@@ -93,13 +93,46 @@ function progressMarkup(goal, detail = false) {
   return `<div class="tiles ${detail ? 'detail-tiles' : ''}">${milestones.map((item) => tileMarkup(item)).join('')}</div>`;
 }
 
+function formatProgressNumber(value) {
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(value);
+}
+
+function overallProgress(goal) {
+  const milestones = goal.milestones || [];
+  if (!milestones.length) return null;
+  const items = milestones.map((milestone) => ({ ...milestoneValues(milestone), unit: String(milestone.unit || '').trim() }));
+  const units = new Set(items.map((item) => item.unit.toLocaleLowerCase('ru-RU')));
+  const oneScale = units.size === 1;
+
+  if (oneScale) {
+    const current = items.reduce((sum, item) => sum + item.current, 0);
+    const target = items.reduce((sum, item) => sum + item.target, 0);
+    const percentage = target > 0 ? Math.round((current / target) * 100) : 0;
+    const unit = items[0].unit;
+    const allBinary = !unit && items.every((item) => item.target === 1);
+    const detail = unit
+      ? `${formatProgressNumber(current)} из ${formatProgressNumber(target)} ${escapeHtml(unit)}`
+      : allBinary ? `${formatProgressNumber(current)} из ${formatProgressNumber(target)} этапов` : '';
+    return { percentage, detail };
+  }
+
+  const percentage = Math.round(items.reduce((sum, item) => sum + (item.current / item.target) * 100, 0) / items.length);
+  return { percentage, detail: `${milestones.length} подцели` };
+}
+
+function overallProgressMarkup(goal) {
+  const progress = overallProgress(goal);
+  if (!progress) return '';
+  return `<div class="overall-progress" data-overall-progress><div class="overall-progress-copy"><span>Общий прогресс</span><span><strong>${progress.percentage}%</strong>${progress.detail ? ` · ${progress.detail}` : ''}</span></div><div class="overall-progress-track" role="progressbar" aria-label="Общий прогресс цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${progress.percentage}"><span style="width:${progress.percentage}%"></span></div></div>`;
+}
+
 function valueMarkup(goal) {
   if (goal.goalType === 'collection') return escapeHtml(goal.currentValue);
   return `${escapeHtml(goal.currentValue)} <span aria-hidden="true">→</span> ${escapeHtml(goal.targetValue)}`;
 }
 
 function goalCard(goal) {
-  return `<li><button class="goal-card" data-open-goal="${goal.id}"><span class="goal-top"><span class="goal-title">${escapeHtml(goal.title)}</span><span class="chevron">›</span></span><span class="goal-value">${valueMarkup(goal)}</span>${goal.meta ? `<span class="goal-meta">${escapeHtml(goal.meta)}</span>` : ''}${progressMarkup(goal)}</button></li>`;
+  return `<li><button class="goal-card" data-open-goal="${goal.id}"><span class="goal-top"><span class="goal-title">${escapeHtml(goal.title)}</span><span class="chevron">›</span></span><span class="goal-value">${valueMarkup(goal)}</span>${goal.meta ? `<span class="goal-meta">${escapeHtml(goal.meta)}</span>` : ''}${overallProgressMarkup(goal)}${progressMarkup(goal)}</button></li>`;
 }
 
 function renderHome() {
@@ -117,7 +150,7 @@ function milestoneEditorMarkup(milestone) {
 function renderDetail() {
   const goal = state.goals.find((item) => item.id === state.selectedId);
   if (!goal) return renderHome();
-  app.innerHTML = `<div class="app-shell"><section class="panel"><button class="back" data-back>‹ Цели</button><header class="detail-head"><h1 class="goal-title">${escapeHtml(goal.title)}</h1><div class="goal-value">${valueMarkup(goal)}</div>${goal.meta ? `<div class="goal-meta">${escapeHtml(goal.meta)}</div>` : ''}${progressMarkup(goal, true)}</header><section class="detail-section"><div class="section-title-row"><h2>Этапы</h2><span class="autosave-status" data-autosave-status aria-live="polite"></span></div><p class="section-note">Меняйте данные прямо в полях — они сохраняются автоматически. Этапы можно перетаскивать за маркер справа.</p><ul class="milestone-list">${goal.milestones.length ? goal.milestones.map(milestoneEditorMarkup).join('') : '<li class="goal-meta">Пока нет этапов.</li>'}</ul><form class="form add-milestone" data-add-milestone><h3>Новый этап</h3><label>Название<input name="label" maxlength="60" placeholder="Например, Курс B2" required /></label><div class="milestone-fields"><label>Сделано<input name="progressCurrent" type="number" min="0" max="1000000" step="any" value="0" required /></label><label>Из<input name="progressTarget" type="number" min="0.01" max="1000000" step="any" value="1" required /></label><label>Единица<input name="unit" maxlength="24" placeholder="дней, %, км" /></label><label>Статус<select name="state"><option value="future">Впереди</option><option value="current">Сейчас</option><option value="done">Сделано</option></select></label></div><button class="button button-primary" type="submit">Добавить этап</button></form></section><section class="detail-section"><h2>Последние изменения</h2><ul class="event-list">${goal.events.length ? goal.events.map((event) => `<li class="event-row"><span><span class="event-title">${escapeHtml(event.title)}</span>${event.detail ? `<span class="event-detail">${escapeHtml(event.detail)}</span>` : ''}</span><time class="event-date">${dateLabel(event.occurredAt)}</time></li>`).join('') : '<li class="goal-meta">Пока нет записей.</li>'}</ul><form class="form add-event" data-add-event><label>Что изменилось?<input name="title" maxlength="120" placeholder="Например, сходил на Sprachcafé" required /></label><label>Деталь (необязательно)<input name="detail" maxlength="160" placeholder="90 минут" /></label><button class="button button-primary" type="submit">Записать</button></form></section><section class="detail-section"><h2>Настройки цели</h2><div class="settings-actions"><button class="button" data-edit-goal>Изменить цель</button><button class="button button-danger" data-delete-goal>Удалить цель</button></div></section></section></div>`;
+  app.innerHTML = `<div class="app-shell"><section class="panel"><button class="back" data-back>‹ Цели</button><header class="detail-head"><h1 class="goal-title">${escapeHtml(goal.title)}</h1><div class="goal-value">${valueMarkup(goal)}</div>${goal.meta ? `<div class="goal-meta">${escapeHtml(goal.meta)}</div>` : ''}${overallProgressMarkup(goal)}${progressMarkup(goal, true)}</header><section class="detail-section"><div class="section-title-row"><h2>Этапы</h2><span class="autosave-status" data-autosave-status aria-live="polite"></span></div><p class="section-note">Меняйте данные прямо в полях — они сохраняются автоматически. Этапы можно перетаскивать за маркер справа.</p><ul class="milestone-list">${goal.milestones.length ? goal.milestones.map(milestoneEditorMarkup).join('') : '<li class="goal-meta">Пока нет этапов.</li>'}</ul><form class="form add-milestone" data-add-milestone><h3>Новый этап</h3><label>Название<input name="label" maxlength="60" placeholder="Например, Курс B2" required /></label><div class="milestone-fields"><label>Сделано<input name="progressCurrent" type="number" min="0" max="1000000" step="any" value="0" required /></label><label>Из<input name="progressTarget" type="number" min="0.01" max="1000000" step="any" value="1" required /></label><label>Единица<input name="unit" maxlength="24" placeholder="дней, %, км" /></label><label>Статус<select name="state"><option value="future">Впереди</option><option value="current">Сейчас</option><option value="done">Сделано</option></select></label></div><button class="button button-primary" type="submit">Добавить этап</button></form></section><section class="detail-section"><h2>Последние изменения</h2><ul class="event-list">${goal.events.length ? goal.events.map((event) => `<li class="event-row"><span><span class="event-title">${escapeHtml(event.title)}</span>${event.detail ? `<span class="event-detail">${escapeHtml(event.detail)}</span>` : ''}</span><time class="event-date">${dateLabel(event.occurredAt)}</time></li>`).join('') : '<li class="goal-meta">Пока нет записей.</li>'}</ul><form class="form add-event" data-add-event><label>Что изменилось?<input name="title" maxlength="120" placeholder="Например, сходил на Sprachcafé" required /></label><label>Деталь (необязательно)<input name="detail" maxlength="160" placeholder="90 минут" /></label><button class="button button-primary" type="submit">Записать</button></form></section><section class="detail-section"><h2>Настройки цели</h2><div class="settings-actions"><button class="button" data-edit-goal>Изменить цель</button><button class="button button-danger" data-delete-goal>Удалить цель</button></div></section></section></div>`;
   app.querySelector('[data-back]').addEventListener('click', () => { state.selectedId = null; renderHome(); });
   app.querySelectorAll('[data-edit-milestone]').forEach((form) => {
     form.addEventListener('submit', (event) => event.preventDefault());
@@ -177,6 +210,8 @@ function updateMilestonePreview(form, data) {
   const milestone = goal?.milestones.find((item) => item.id === form.dataset.editMilestone);
   if (!goal || !milestone) return;
   Object.assign(milestone, data);
+  const overall = app.querySelector('.detail-head [data-overall-progress]');
+  if (overall) overall.outerHTML = overallProgressMarkup(goal);
   const tiles = app.querySelector('.detail-head .tiles');
   if (tiles) tiles.outerHTML = progressMarkup(goal, true);
 }
