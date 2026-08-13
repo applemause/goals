@@ -479,28 +479,40 @@ function bindMilestoneReordering() {
     handle.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return;
       event.preventDefault();
+      if (item.classList.contains('is-dragging')) return;
+      const pointerId = event.pointerId;
       const initialOrder = [...list.querySelectorAll('[data-milestone-id]')].map((row) => row.dataset.milestoneId).join(',');
+      let active = true;
       item.classList.add('is-dragging');
-      handle.setPointerCapture(event.pointerId);
+      document.body.classList.add('is-reordering');
       const move = (moveEvent) => {
-        const over = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('[data-milestone-id]');
+        if (!active || moveEvent.pointerId !== pointerId) return;
+        moveEvent.preventDefault();
+        const over = document.elementsFromPoint(moveEvent.clientX, moveEvent.clientY)
+          .map((element) => element.closest?.('[data-milestone-id]'))
+          .find((candidate) => candidate && candidate !== item && candidate.parentElement === list);
         if (!over || over === item || over.parentElement !== list) return;
         const rect = over.getBoundingClientRect();
         list.insertBefore(item, moveEvent.clientY < rect.top + rect.height / 2 ? over : over.nextElementSibling);
         if (moveEvent.clientY < 70) window.scrollBy(0, -12);
         if (moveEvent.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
       };
-      const finish = () => {
+      const finish = (finishEvent) => {
+        if (!active || (finishEvent?.pointerId !== undefined && finishEvent.pointerId !== pointerId)) return;
+        active = false;
         item.classList.remove('is-dragging');
-        handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', finish);
-        handle.removeEventListener('pointercancel', finish);
+        document.body.classList.remove('is-reordering');
+        window.removeEventListener('pointermove', move, true);
+        window.removeEventListener('pointerup', finish, true);
+        window.removeEventListener('pointercancel', finish, true);
+        window.removeEventListener('blur', finish);
         const nextOrder = [...list.querySelectorAll('[data-milestone-id]')].map((row) => row.dataset.milestoneId).join(',');
         if (nextOrder !== initialOrder) persistMilestoneOrder(list);
       };
-      handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', finish);
-      handle.addEventListener('pointercancel', finish);
+      window.addEventListener('pointermove', move, { capture: true, passive: false });
+      window.addEventListener('pointerup', finish, true);
+      window.addEventListener('pointercancel', finish, true);
+      window.addEventListener('blur', finish);
     });
   });
 }
